@@ -1,0 +1,76 @@
+{
+  "name": "typst-review-comments",
+  "displayName": "Typst Review Comments",
+  "description": "Manage review comments (the review-comments Typst package): list, edit, resolve, delete, insert, and toggle them in the preview/PDF.",
+  "version": "0.1.0",
+  "publisher": "martijnkuipers",
+  "license": "MIT",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Other"],
+  "keywords": ["typst", "comments", "review"],
+  "activationEvents": ["onLanguage:typst"],
+  "main": "./out/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        { "id": "reviewComments", "title": "Review comments", "icon": "media/icon.svg" }
+      ]
+    },
+    "views": {
+      "reviewComments": [
+        { "type": "webview", "id": "reviewComments.view", "name": "Comments" }
+      ]
+    },
+    "commands": [
+      { "command": "reviewComments.addComment", "title": "Review Comments: Add Comment", "category": "Typst" },
+      { "command": "reviewComments.toggleShow", "title": "Review Comments: Show/Hide Comments in Preview and PDF", "category": "Typst" },
+      { "command": "reviewComments.focus", "title": "Review Comments: Show Panel", "category": "Typst" },
+      { "command": "reviewComments.refresh", "title": "Review Comments: Refresh", "category": "Typst" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "reviewComments.addComment", "when": "editorLangId == typst", "group": "1_modification@99" }
+      ]
+    },
+    "keybindings": [
+      { "command": "reviewComments.addComment", "key": "ctrl+alt+m", "mac": "cmd+alt+m", "when": "editorTextFocus && editorLangId == typst" }
+    ],
+    "configuration": {
+      "title": "Typst Review Comments",
+      "properties": {
+        "reviewComments.author": {
+          "type": "string", "default": "",
+          "description": "Author name stored in new comments. If empty you are asked the first time."
+        },
+        "reviewComments.includeDate": {
+          "type": "boolean", "default": true,
+          "description": "Store the date (YYYY-MM-DD) in new comments."
+        },
+        "reviewComments.scope": {
+          "type": "string", "enum": ["workspace", "file"], "default": "workspace",
+          "description": "List comments from all .typ files in the workspace, or only from the active file."
+        },
+        "reviewComments.packageVersion": {
+          "type": "string", "default": "0.3.0",
+          "description": "Version of @preview/review-comments used when the extension adds the import."
+        },
+        "reviewComments.saveAfterEdit": {
+          "type": "boolean", "default": false,
+          "description": "Save the file automatically after the extension edits it (so PDF export on save picks up the change)."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "test": "tsc -p . && node --test out/test/*.test.js",
+    "package": "npm run compile && vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^3.0.0",
+    "typescript": "^5.4.0"
+  }
+}
