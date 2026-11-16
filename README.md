@@ -63,7 +63,9 @@ as Tinymist is recommended for the preview.
 
 ```sh
 npm install
-npm test           # compile + unit tests of the parser and edit logic
+npm test                  # compile + unit tests of the parser and edit logic
+npm run test:integration  # runs the extension in a real VS Code (downloaded on first use)
+                          # and compiles the edited fixture with the typst CLI
 ```
 
 Press `F5` in VS Code to start an Extension Development Host. Build an

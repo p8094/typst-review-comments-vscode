@@ -5,3 +5,5 @@ out/test/**
 out/**/*.map
 tsconfig.json
 .gitignore
+test-fixtures/**
+.vscode-test/**

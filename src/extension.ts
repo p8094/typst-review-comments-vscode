@@ -127,7 +127,7 @@ class CommentsView implements vscode.WebviewViewProvider {
     return withSetup.find((e) => e.uri.toString() === active) ?? withSetup[0];
   }
 
-  private state() {
+  state() {
     const scope = cfg().get<string>("scope") === "file" ? "file" : "workspace";
     let entries = this.store.all();
     if (scope === "file") {
@@ -179,7 +179,7 @@ class CommentsView implements vscode.WebviewViewProvider {
     return { uri: u, c };
   }
 
-  private async onMessage(m: any): Promise<void> {
+  async onMessage(m: any): Promise<void> {
     switch (m.type) {
       case "ready":
         this.post();
@@ -317,7 +317,10 @@ async function addComment(): Promise<void> {
 
 // --- activation ------------------------------------------------------------------------
 
-export async function activate(context: vscode.ExtensionContext): Promise<void> {
+/** Exposed for the integration tests. */
+export interface TestApi { view: CommentsView; store: Store }
+
+export async function activate(context: vscode.ExtensionContext): Promise<TestApi> {
   const store = new Store();
   const view = new CommentsView(store);
   await store.scan();
@@ -350,6 +353,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     watcher.onDidChange(async (u) => { await store.load(u); view.refreshSoon(); }),
     watcher.onDidDelete((u) => { store.remove(u); view.refreshSoon(); }),
   );
+  return { view, store };
 }
 
 export function deactivate(): void {}
