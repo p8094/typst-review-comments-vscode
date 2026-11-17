@@ -122,3 +122,10 @@ installable package with `npm run package` (creates a `.vsix`).
 ## License
 
 MIT
+
+## Links
+
+- Typst package `review-comments` (the `#comment` function and the
+  `review-comments.with(...)` setup):
+  <https://github.com/p8094/typst-review-comments>
+- This extension: <https://github.com/p8094/typst-review-comments-vscode>
