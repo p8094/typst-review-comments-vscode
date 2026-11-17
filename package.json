@@ -3,8 +3,9 @@
   "displayName": "Typst Review Comments",
   "description": "Manage review comments (the review-comments Typst package): list, edit, resolve, delete, insert, and toggle them in the preview/PDF.",
   "version": "0.1.0",
-  "publisher": "martijnkuipers",
+  "publisher": "ULusofona-MartijnKuipers",
   "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/p8094/typst-review-comments-vscode.git" },
   "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.85.0"

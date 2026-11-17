@@ -41,7 +41,7 @@ preview updates as you type; for PDF export on save, save the file.
 (`Cmd+Shift+X`), search for *Typst Review Comments* and click **Install**, or run
 
 ```
-code --install-extension martijnkuipers.typst-review-comments
+code --install-extension ULusofona-MartijnKuipers.typst-review-comments
 ```
 
 VSCodium and other editors can get it from [Open VSX](https://open-vsx.org).
