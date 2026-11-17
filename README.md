@@ -77,16 +77,17 @@ Typst Package** (or **? Setup → Get package** in the panel). It:
 1. checks whether the package is listed on Typst Universe. If so, nothing is
    installed: Typst downloads `@preview/review-comments` automatically on the
    first compile, and new imports use `@preview`;
-2. otherwise downloads the latest version from GitHub into Typst's local package
-   folder and switches new imports to `@local/review-comments`:
+2. otherwise copies the package bundled with this extension (`typst-package/`,
+   no download needed) into Typst's local package folder and switches new imports to `@local/review-comments`:
    - macOS: `~/Library/Application Support/typst/packages/local/review-comments/<version>/`
    - Linux: `~/.local/share/typst/packages/local/review-comments/<version>/`
    - Windows: `%APPDATA%\typst\packages\local\review-comments\<version>\`
+   - if `TYPST_PACKAGE_PATH` is set, that folder is used instead
 
-Manual alternative: copy `lib.typ` and `typst.toml` from the GitHub repository
+Manual alternative: copy `lib.typ` and `typst.toml` from `typst-package/`
 into the folder above, or just add
 `#import "@preview/review-comments:0.3.0": *` once the package is on Universe.
-Run the command again later to move from the GitHub copy to Universe.
+Run the command again later to move from the local copy to Universe.
 
 ## Settings
 

@@ -5,7 +5,7 @@ import {
   TextEdit, buildComment, deleteComment, editComment, hasImport, importLine, insertSetup, isBalanced, setSetupFlag,
 } from "./edits";
 import { getHtml } from "./webview";
-import { installLocalPackage, latestPreviewVersion } from "./pkg";
+import { bundledVersion, installLocalPackage, latestPreviewVersion, versionAtLeast } from "./pkg";
 
 // --- store of parsed documents ---------------------------------------------------
 
@@ -19,22 +19,26 @@ interface Entry {
 const pkgVersion = (): string => cfg().get<string>("packageVersion") || "0.3.0";
 const pkgSource = (): "preview" | "local" => (cfg().get<string>("packageSource") === "local" ? "local" : "preview");
 
-async function installPackage(): Promise<void> {
+let extPath = "";
+
+async function installPackage(extensionPath: string): Promise<void> {
   try {
     const result = await vscode.window.withProgress(
       { location: vscode.ProgressLocation.Notification, title: "Setting up the review-comments Typst package…" },
       async () => {
-        // Prefer the published Typst Universe package; fall back to GitHub.
+        // Prefer Typst Universe if it has a version at least as new as the bundled copy;
+        // otherwise install the copy bundled with the extension as @local.
         const published = await latestPreviewVersion();
-        if (published) return { source: "preview" as const, version: published, dir: "" };
-        return { source: "local" as const, ...(await installLocalPackage()) };
+        const bundled = bundledVersion(extensionPath);
+        if (published && (!bundled || versionAtLeast(published, bundled))) return { source: "preview" as const, version: published, dir: "" };
+        return { source: "local" as const, ...installLocalPackage(extensionPath) };
       },
     );
     await cfg().update("packageVersion", result.version, vscode.ConfigurationTarget.Global);
     await cfg().update("packageSource", result.source, vscode.ConfigurationTarget.Global);
     vscode.window.showInformationMessage(result.source === "preview"
       ? `@preview/review-comments:${result.version} is on Typst Universe; Typst downloads it automatically on first compile. New imports use @preview.`
-      : `Not on Typst Universe (yet or offline), so the GitHub version ${result.version} was installed in ${result.dir}. New imports use @local.`);
+      : `Not on Typst Universe (yet or offline), so the bundled version ${result.version} was installed in ${result.dir}. New imports use @local.`);
   } catch (e: any) {
     vscode.window.showErrorMessage(`Package setup failed: ${e?.message ?? e}`);
   }
@@ -218,7 +222,7 @@ class CommentsView implements vscode.WebviewViewProvider {
         await vscode.commands.executeCommand("reviewComments.addComment");
         break;
       case "installPackage":
-        await installPackage();
+        await installPackage(extPath);
         this.post();
         break;
       case "copyImport":
@@ -367,11 +371,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<TestAp
   const view = new CommentsView(store);
   await store.scan();
 
+  extPath = context.extensionPath;
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider("reviewComments.view", view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.commands.registerCommand("reviewComments.addComment", addComment),
     vscode.commands.registerCommand("reviewComments.focus", () => vscode.commands.executeCommand("reviewComments.view.focus")),
-    vscode.commands.registerCommand("reviewComments.installPackage", installPackage),
+    vscode.commands.registerCommand("reviewComments.installPackage", () => installPackage(context.extensionPath)),
     vscode.commands.registerCommand("reviewComments.refresh", async () => { await store.scan(); view.post(); }),
     vscode.commands.registerCommand("reviewComments.toggleShow", async () => {
       const p = view.primarySetup();
