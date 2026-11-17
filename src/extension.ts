@@ -5,6 +5,7 @@ import {
   TextEdit, buildComment, deleteComment, editComment, hasImport, importLine, insertSetup, isBalanced, setSetupFlag,
 } from "./edits";
 import { getHtml } from "./webview";
+import { installLocalPackage, latestPreviewVersion } from "./pkg";
 
 // --- store of parsed documents ---------------------------------------------------
 
@@ -13,6 +14,30 @@ interface Entry {
   text: string;
   comments: ParsedComment[];
   setup: SetupCall | null;
+}
+
+const pkgVersion = (): string => cfg().get<string>("packageVersion") || "0.3.0";
+const pkgSource = (): "preview" | "local" => (cfg().get<string>("packageSource") === "local" ? "local" : "preview");
+
+async function installPackage(): Promise<void> {
+  try {
+    const result = await vscode.window.withProgress(
+      { location: vscode.ProgressLocation.Notification, title: "Setting up the review-comments Typst package…" },
+      async () => {
+        // Prefer the published Typst Universe package; fall back to GitHub.
+        const published = await latestPreviewVersion();
+        if (published) return { source: "preview" as const, version: published, dir: "" };
+        return { source: "local" as const, ...(await installLocalPackage()) };
+      },
+    );
+    await cfg().update("packageVersion", result.version, vscode.ConfigurationTarget.Global);
+    await cfg().update("packageSource", result.source, vscode.ConfigurationTarget.Global);
+    vscode.window.showInformationMessage(result.source === "preview"
+      ? `@preview/review-comments:${result.version} is on Typst Universe; Typst downloads it automatically on first compile. New imports use @preview.`
+      : `Not on Typst Universe (yet or offline), so the GitHub version ${result.version} was installed in ${result.dir}. New imports use @local.`);
+  } catch (e: any) {
+    vscode.window.showErrorMessage(`Package setup failed: ${e?.message ?? e}`);
+  }
 }
 
 const isTypst = (doc: vscode.TextDocument): boolean =>
@@ -143,6 +168,7 @@ class CommentsView implements vscode.WebviewViewProvider {
         showResolved: primary ? setupFlag(primary.setup, "show-resolved", true) : true,
         file: primary ? relName(primary.uri) : "",
       },
+      importLine: importLine(pkgVersion(), pkgSource()),
       files: entries
         .filter((e) => e.comments.length)
         .map((e) => ({
@@ -191,6 +217,23 @@ class CommentsView implements vscode.WebviewViewProvider {
       case "add":
         await vscode.commands.executeCommand("reviewComments.addComment");
         break;
+      case "installPackage":
+        await installPackage();
+        this.post();
+        break;
+      case "copyImport":
+        await vscode.env.clipboard.writeText(importLine(pkgVersion(), pkgSource()));
+        vscode.window.showInformationMessage("Import line copied to the clipboard.");
+        break;
+      case "insertImport": {
+        const ed = typstEditor();
+        if (!ed) { vscode.window.showWarningMessage("Open a .typ file first."); break; }
+        if (hasImport(ed.document.getText())) { vscode.window.showInformationMessage("This file already imports the review-comments package."); break; }
+        const first = ed.document.getText().search(/^#(import|show:)/m);
+        const at = ed.document.positionAt(first >= 0 ? first : 0);
+        await ed.edit((b) => b.insert(at, importLine(pkgVersion(), pkgSource()) + "\n"));
+        break;
+      }
       case "reveal": {
         const e = this.store.get(vscode.Uri.parse(m.uri));
         const c = e?.comments[m.index];
@@ -267,7 +310,7 @@ class CommentsView implements vscode.WebviewViewProvider {
       { placeHolder: "Which file is your main document? The review-comments setup line is added there." },
     ))?.entry;
     if (!pick) { this.post(); return; }
-    await applyEdits(pick.uri, insertSetup(pick.text, value, cfg().get<string>("packageVersion") || "0.3.0"));
+    await applyEdits(pick.uri, insertSetup(pick.text, value, pkgVersion(), pkgSource()));
     this.lastSetupUri = pick.uri.toString();
   }
 }
@@ -303,14 +346,13 @@ async function addComment(): Promise<void> {
 
   // The package must be imported in this file for #comment to resolve.
   if (!hasImport(doc.getText())) {
-    const version = cfg().get<string>("packageVersion") || "0.3.0";
-    const choice = await vscode.window.showInformationMessage(
+        const choice = await vscode.window.showInformationMessage(
       "This file does not import the review-comments package yet, so #comment will not compile.", "Add import",
     );
     if (choice === "Add import") {
       const first = doc.getText().search(/^#(import|show:)/m);
       const at = doc.positionAt(first >= 0 ? first : 0);
-      await editor.edit((b) => b.insert(at, importLine(version) + "\n"));
+      await editor.edit((b) => b.insert(at, importLine(pkgVersion(), pkgSource()) + "\n"));
     }
   }
 }
@@ -329,6 +371,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<TestAp
     vscode.window.registerWebviewViewProvider("reviewComments.view", view, { webviewOptions: { retainContextWhenHidden: true } }),
     vscode.commands.registerCommand("reviewComments.addComment", addComment),
     vscode.commands.registerCommand("reviewComments.focus", () => vscode.commands.executeCommand("reviewComments.view.focus")),
+    vscode.commands.registerCommand("reviewComments.installPackage", installPackage),
     vscode.commands.registerCommand("reviewComments.refresh", async () => { await store.scan(); view.post(); }),
     vscode.commands.registerCommand("reviewComments.toggleShow", async () => {
       const p = view.primarySetup();

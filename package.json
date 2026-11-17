@@ -5,6 +5,7 @@
   "version": "0.1.0",
   "publisher": "martijnkuipers",
   "license": "MIT",
+  "icon": "media/icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -56,6 +57,11 @@
         "category": "Typst"
       },
       {
+        "command": "reviewComments.installPackage",
+        "title": "Review Comments: Get Typst Package",
+        "category": "Typst"
+      },
+      {
         "command": "reviewComments.refresh",
         "title": "Review Comments: Refresh",
         "category": "Typst"
@@ -99,6 +105,12 @@
           ],
           "default": "workspace",
           "description": "List comments from all .typ files in the workspace, or only from the active file."
+        },
+        "reviewComments.packageSource": {
+          "type": "string",
+          "enum": ["preview", "local"],
+          "default": "preview",
+          "description": "Where the Typst package comes from. 'preview' imports @preview/review-comments (Typst downloads it from the net on first compile). 'local' imports @local/review-comments (install it with 'Review Comments: Get Typst Package')."
         },
         "reviewComments.packageVersion": {
           "type": "string",

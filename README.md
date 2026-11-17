@@ -35,11 +35,58 @@ All changes are normal edits to the document: they appear in the undo stack,
 and nothing is saved unless you enable `reviewComments.saveAfterEdit`. The
 preview updates as you type; for PDF export on save, save the file.
 
+## Installation
+
+**From the marketplace** (once published): open the Extensions view
+(`Cmd+Shift+X`), search for *Typst Review Comments* and click **Install**, or run
+
+```
+code --install-extension martijnkuipers.typst-review-comments
+```
+
+VSCodium and other editors can get it from [Open VSX](https://open-vsx.org).
+
+**From a `.vsix` file** (e.g. from the GitHub releases page): in the Extensions
+view choose `…` → **Install from VSIX…**, or run
+`code --install-extension typst-review-comments-<version>.vsix`.
+
+**From source:**
+
+```
+npm install
+npm run package          # builds typst-review-comments-<version>.vsix
+code --install-extension typst-review-comments-*.vsix
+```
+
+Then reload the window, open a `.typ` file and click the *Review comments* icon
+in the activity bar. Finally set up the Typst package, see below.
+
 ## Requirements
 
 The Typst documents need the `review-comments` package
 (`#import "@preview/review-comments:0.3.0": *`). A Typst language extension such
 as Tinymist is recommended for the preview.
+
+### Getting the Typst package
+
+The package is published on GitHub
+([p8094/typst-review-comments](https://github.com/p8094/typst-review-comments))
+and, once accepted, on Typst Universe. To set it up run **Review Comments: Get
+Typst Package** (or **? Setup → Get package** in the panel). It:
+
+1. checks whether the package is listed on Typst Universe. If so, nothing is
+   installed: Typst downloads `@preview/review-comments` automatically on the
+   first compile, and new imports use `@preview`;
+2. otherwise downloads the latest version from GitHub into Typst's local package
+   folder and switches new imports to `@local/review-comments`:
+   - macOS: `~/Library/Application Support/typst/packages/local/review-comments/<version>/`
+   - Linux: `~/.local/share/typst/packages/local/review-comments/<version>/`
+   - Windows: `%APPDATA%\typst\packages\local\review-comments\<version>\`
+
+Manual alternative: copy `lib.typ` and `typst.toml` from the GitHub repository
+into the folder above, or just add
+`#import "@preview/review-comments:0.3.0": *` once the package is on Universe.
+Run the command again later to move from the GitHub copy to Universe.
 
 ## Settings
 
@@ -48,6 +95,7 @@ as Tinymist is recommended for the preview.
 | `reviewComments.author`          | `""`          | Author stored in new comments                         |
 | `reviewComments.includeDate`     | `true`        | Store today's date in new comments                    |
 | `reviewComments.scope`           | `"workspace"` | List comments of all workspace files or the active one |
+| `reviewComments.packageSource`   | `"preview"`   | `preview`: import `@preview/review-comments`. `local`: import `@local/review-comments`. Set by the Get Typst Package command |
 | `reviewComments.packageVersion`  | `"0.3.0"`     | Version used when the extension adds the import       |
 | `reviewComments.saveAfterEdit`   | `false`       | Save the file after the extension edits it            |
 

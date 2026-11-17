@@ -13,9 +13,9 @@ export function getHtml(nonce: string, cspSource: string): string {
   body { padding: 0 10px 14px; font-family: var(--vscode-font-family); font-size: var(--vscode-font-size); color: var(--vscode-foreground); }
   .switches { position: sticky; top: 0; z-index: 2; background: var(--vscode-sideBar-background); padding: 10px 0 6px; border-bottom: 1px solid var(--vscode-panel-border); }
   .row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
-  .row label { cursor: pointer; flex: 1; }
+  .row > label:not(.switch) { cursor: pointer; flex: 1; }
   .hint { color: var(--vscode-descriptionForeground); font-size: 0.85em; margin: 2px 0 6px; }
-  .switch { position: relative; width: 34px; height: 18px; flex: none; }
+  .switch { position: relative; display: block; width: 34px; height: 18px; flex: none; cursor: pointer; }
   .switch input { opacity: 0; width: 0; height: 0; }
   .slider { position: absolute; inset: 0; border-radius: 9px; background: var(--vscode-input-background); border: 1px solid var(--vscode-checkbox-border, var(--vscode-panel-border)); transition: .15s; }
   .slider::before { content: ""; position: absolute; width: 12px; height: 12px; left: 2px; top: 2px; border-radius: 50%; background: var(--vscode-foreground); opacity: .7; transition: .15s; }
@@ -52,6 +52,10 @@ export function getHtml(nonce: string, cspSource: string): string {
   textarea { min-height: 70px; resize: vertical; }
   .actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .empty { color: var(--vscode-descriptionForeground); padding: 16px 0; text-align: center; }
+  .help { margin: 6px 0; padding: 6px 8px; border: 1px solid var(--vscode-panel-border); border-radius: 2px; font-size: .9em; }
+  .help p { margin: 4px 0; }
+  .help code { display: block; font-family: var(--vscode-editor-font-family); background: var(--vscode-textCodeBlock-background); padding: 4px 6px; margin: 4px 0; border-radius: 2px; overflow-x: auto; white-space: pre; user-select: text; }
+  .help code.inl { display: inline; padding: 0 3px; }
   .err { color: var(--vscode-errorForeground); font-size: .85em; }
 </style>
 </head>
@@ -59,11 +63,11 @@ export function getHtml(nonce: string, cspSource: string): string {
   <div class="switches">
     <div class="row">
       <label for="sw-enabled"><b>Show comments</b> in preview and PDF</label>
-      <span class="switch"><input type="checkbox" id="sw-enabled"><span class="slider"></span></span>
+      <label class="switch"><input type="checkbox" id="sw-enabled"><span class="slider"></span></label>
     </div>
     <div class="row">
       <label for="sw-resolved">Show resolved comments</label>
-      <span class="switch"><input type="checkbox" id="sw-resolved"><span class="slider"></span></span>
+      <label class="switch"><input type="checkbox" id="sw-resolved"><span class="slider"></span></label>
     </div>
     <div class="hint" id="setup-hint"></div>
   </div>
@@ -72,8 +76,20 @@ export function getHtml(nonce: string, cspSource: string): string {
     <button class="chip" data-filter="open">Open <span id="n-open"></span></button>
     <button class="chip" data-filter="resolved">Resolved <span id="n-resolved"></span></button>
     <span class="spacer"></span>
+    <button class="chip" id="help-btn" title="How to add the review-comments package to a Typst file">? Setup</button>
     <button class="chip" id="scope" title="Switch between all workspace files and the active file"></button>
     <button class="btn" id="add" title="Add a comment at the selection of the active editor">+ Add</button>
+  </div>
+  <div class="help" id="help" hidden>
+    <p>Add this line near the top of every <code class="inl">.typ</code> file that uses <code class="inl">#comment</code>:</p>
+    <code id="help-import"></code>
+    <p>Optionally, in your main file, add this to control showing comments in the preview and PDF:</p>
+    <code>#show: review-comments.with(enabled: true)</code>
+    <div class="actions">
+      <button class="btn" id="help-copy">Copy import</button>
+      <button class="btn secondary" id="help-insert">Insert in active file</button>
+      <button class="btn secondary" id="help-install" title="Use the Typst Universe package if published, otherwise install the GitHub version into Typst's local package folder">Get package</button>
+    </div>
   </div>
   <div id="list"></div>
 <script nonce="${nonce}">
@@ -98,6 +114,10 @@ export function getHtml(nonce: string, cspSource: string): string {
   $("sw-enabled").addEventListener("change", function (e) { post({ type: "toggle", key: "enabled", value: e.target.checked }); });
   $("sw-resolved").addEventListener("change", function (e) { post({ type: "toggle", key: "show-resolved", value: e.target.checked }); });
   $("add").addEventListener("click", function () { post({ type: "add" }); });
+  $("help-btn").addEventListener("click", function () { $("help").hidden = !$("help").hidden; });
+  $("help-copy").addEventListener("click", function () { post({ type: "copyImport" }); });
+  $("help-install").addEventListener("click", function () { post({ type: "installPackage" }); });
+  $("help-insert").addEventListener("click", function () { post({ type: "insertImport" }); });
   $("scope").addEventListener("click", function () { post({ type: "scope", value: state && state.scope === "workspace" ? "file" : "workspace" }); });
   Array.prototype.forEach.call(document.querySelectorAll("[data-filter]"), function (b) {
     b.addEventListener("click", function () { filter = b.getAttribute("data-filter"); vscode.setState({ filter: filter }); render(); });
@@ -124,6 +144,7 @@ export function getHtml(nonce: string, cspSource: string): string {
     $("setup-hint").textContent = s.found
       ? "Switch stored in " + s.file + " (review-comments.with). Preview and PDF update when the file is recompiled."
       : "No review-comments.with(...) found yet. Turning the switch on adds it to a file of your choice.";
+    $("help-import").textContent = state.importLine;
     $("scope").textContent = state.scope === "workspace" ? "All files" : "This file";
 
     var n = counts();

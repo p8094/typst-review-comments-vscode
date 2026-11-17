@@ -64,12 +64,14 @@ export function setSetupFlag(setup: SetupCall, name: string, value: boolean): Te
   return { start: setup.open + 1, end: setup.open + 1, text: `${name}: ${lit}${hasArgs ? ", " : ""}` };
 }
 
-export function importLine(version: string): string {
-  return `#import "@preview/review-comments:${version}": *`;
+export type PackageSource = "preview" | "local";
+
+export function importLine(version: string, source: PackageSource = "preview"): string {
+  return `#import "@${source}/review-comments:${version}": *`;
 }
 
 export function hasImport(text: string): boolean {
-  return /#import\s+"@preview\/review-comments:[^"]*"/.test(text) || /#import\s+"[^"]*review-comments[^"]*"/.test(text);
+  return /#import\s+"@(preview|local)\/review-comments:[^"]*"/.test(text) || /#import\s+"[^"]*review-comments[^"]*"/.test(text);
 }
 
 /**
@@ -77,7 +79,7 @@ export function hasImport(text: string): boolean {
  * line. The show line goes after the last top-level `#show:` line of the file
  * (so it comes after the template's page setup), else after the imports.
  */
-export function insertSetup(text: string, enabled: boolean, version: string): TextEdit[] {
+export function insertSetup(text: string, enabled: boolean, version: string, source: PackageSource = "preview"): TextEdit[] {
   const lines = text.split("\n");
   const offsets: number[] = [];
   let o = 0;
@@ -109,7 +111,7 @@ export function insertSetup(text: string, enabled: boolean, version: string): Te
     // Import goes right before the first #import/#show (or at the top).
     const first = lines.findIndex((l) => /^#(import|show:)/.test(l));
     const at = first >= 0 ? offsets[first] : 0;
-    edits.push({ start: at, end: at, text: importLine(version) + "\n" });
+    edits.push({ start: at, end: at, text: importLine(version, source) + "\n" });
   }
   const prefix = anchorLine >= 0 ? "\n" : "";
   const suffix = anchorLine >= 0 ? "" : "\n";
